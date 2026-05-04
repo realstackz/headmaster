@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1777909698653,
+      "tag": "0000_colorful_infant_terrible",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1746370800000,
+      "tag": "0001_add_node_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1746370860000,
+      "tag": "0002_add_actions_input_id",
+      "breakpoints": true
+    }
+  ]
+}

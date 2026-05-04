@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Headmaster"
+version = "1.0.0"
+id = "artifacts/headmaster"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21292
+
+[services.development]
+run = "pnpm --filter @workspace/headmaster run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/headmaster", "run", "build" ]
+publicDir = "artifacts/headmaster/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21292"
+BASE_PATH = "/"

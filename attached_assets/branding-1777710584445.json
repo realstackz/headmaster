@@ -1,0 +1,166 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "ui-sans-serif",
+      "count": 98
+    },
+    {
+      "family": "system-ui",
+      "count": 98
+    },
+    {
+      "family": "sans-serif",
+      "count": 98
+    },
+    {
+      "family": "Apple Color Emoji",
+      "count": 98
+    },
+    {
+      "family": "Segoe UI Emoji",
+      "count": 98
+    },
+    {
+      "family": "Segoe UI Symbol",
+      "count": 98
+    },
+    {
+      "family": "Noto Color Emoji",
+      "count": 98
+    }
+  ],
+  "colors": {
+    "primary": "#0F172B",
+    "secondary": "#1E2939",
+    "accent": "#1863DC",
+    "background": "#FFFFFF",
+    "textPrimary": "#1863DC",
+    "link": "#1863DC"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "ui-sans-serif",
+      "heading": "ui-sans-serif"
+    },
+    "fontStacks": {
+      "body": [
+        "ui-sans-serif",
+        "system-ui",
+        "sans-serif",
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol",
+        "Noto Color Emoji"
+      ],
+      "heading": [
+        "ui-sans-serif",
+        "system-ui",
+        "sans-serif",
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol",
+        "Noto Color Emoji"
+      ],
+      "paragraph": [
+        "ui-sans-serif",
+        "system-ui",
+        "sans-serif",
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol",
+        "Noto Color Emoji"
+      ]
+    },
+    "fontSizes": {
+      "h1": "48px",
+      "h2": "14px",
+      "body": "18px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "2px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#1863DC",
+      "textColor": "#FFFFFF",
+      "borderColor": "#1863DC",
+      "borderRadius": "2px",
+      "borderRadiusCorners": {
+        "topLeft": "2px",
+        "topRight": "2px",
+        "bottomRight": "2px",
+        "bottomLeft": "2px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#FDC700",
+      "textColor": "#000000",
+      "borderRadius": "6px",
+      "borderRadiusCorners": {
+        "topLeft": "6px",
+        "topRight": "6px",
+        "bottomRight": "6px",
+        "bottomLeft": "6px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "favicon": "https://roadmap.sh/manifest/apple-touch-icon.png",
+    "ogImage": null,
+    "logoHref": "File saved at: attached_assets/logoHref.html"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Selected #0 because it is located in the header, is visible, and links to the homepage, which are strong indicators of the main brand logo.",
+    "confidence": 0.9,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 4,
+      "text": "Save My Preferences",
+      "reasoning": "Button #6 'Save My Preferences' uses a vibrant blue color (#1863DC), which is a strong indicator of a primary CTA due to its prominence and action-oriented text."
+    },
+    "secondary": {
+      "index": 9,
+      "text": "Download",
+      "reasoning": "Button #2 'Download' uses a vibrant orange color (#FDC700), making it a suitable secondary CTA as it stands out but is distinct from the primary blue."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "medium",
+    "targetAudience": "frontend developers"
+  },
+  "designSystem": {
+    "framework": "tailwind",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 0,
+        "selectedLogoReasoning": "Selected #0 because it is located in the header, is visible, and links to the homepage, which are strong indicators of the main brand logo.",
+        "confidence": 0.9
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

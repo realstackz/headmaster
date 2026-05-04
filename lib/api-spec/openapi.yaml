@@ -1,0 +1,858 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Headmaster API - Personal AI Knowledge System
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: inputs
+    description: User input management
+  - name: nodes
+    description: Knowledge graph nodes
+  - name: edges
+    description: Node relationships
+  - name: actions
+    description: Action items and tasks
+  - name: graph
+    description: Graph utilities and summaries
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /inputs:
+    get:
+      operationId: listInputs
+      tags: [inputs]
+      summary: List all inputs
+      responses:
+        "200":
+          description: List of inputs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Input"
+    post:
+      operationId: createInput
+      tags: [inputs]
+      summary: Create a new input
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInputBody"
+      responses:
+        "201":
+          description: Input created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Input"
+
+  /inputs/upload:
+    post:
+      operationId: uploadFiles
+      tags: [inputs]
+      summary: Upload one or more files (PDF, DOCX, XLSX, PPTX, TXT, CSV, images, MP4/MOV/WEBM video, MP3/WAV/M4A/OGG audio) — each becomes a separate input; images use AI vision, video/audio are transcribed via Whisper
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+              required:
+                - files
+      responses:
+        "201":
+          description: Upload result containing created inputs and any per-file errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+        "400":
+          description: No files provided or unsupported file type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "413":
+          description: File too large (max 100 MB per file)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /inputs/youtube:
+    post:
+      operationId: fetchYoutubePlaylist
+      tags: [inputs]
+      summary: Fetch a YouTube video or playlist and create an input from its content
+      description: |
+        For single video URLs this endpoint returns a regular JSON response (HTTP 201,
+        Content-Type: application/json) matching the YoutubeImportResult schema.
+
+        For playlist URLs (containing `list=` query parameter) the endpoint returns an
+        HTTP 200 NDJSON streaming response (Content-Type: application/x-ndjson).
+        Each newline-delimited JSON object is one of:
+          - `{"type":"start","total":N,"playlistTitle":"..."}` — emitted once before processing begins
+          - `{"type":"video","index":N,"total":N,"title":"...","input":{...},"hasTranscript":true}` — one created input
+          - `{"type":"skip","index":N,"total":N,"title":"...","reason":"..."}` — unavailable/private video skipped
+          - `{"type":"error","message":"..."}` — internal failure; stream ends immediately after
+          - `{"type":"done","added":N,"skipped":N}` — emitted once all videos are processed
+
+        Clients importing playlists should consume this stream directly rather than
+        using the generated JSON client hook.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/YoutubePlaylistBody"
+      responses:
+        "200":
+          description: Playlist import stream (application/x-ndjson) — see description for event schema
+        "201":
+          description: Input created from single video
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YoutubeImportResult"
+
+  /inputs/{id}:
+    get:
+      operationId: getInput
+      tags: [inputs]
+      summary: Get a single input
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Input found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Input"
+    delete:
+      operationId: deleteInput
+      tags: [inputs]
+      summary: Delete an input
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /inputs/{id}/process:
+    post:
+      operationId: processInput
+      tags: [inputs]
+      summary: Process input with AI to generate nodes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Processing result with generated nodes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessResult"
+
+  /inputs/{id}/reprocess:
+    post:
+      operationId: reprocessInput
+      tags: [inputs]
+      summary: Re-process an already-processed input — deletes existing nodes/edges and regenerates them with AI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Re-processing result with regenerated nodes and edges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessResult"
+        "404":
+          description: Input not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /nodes:
+    get:
+      operationId: listNodes
+      tags: [nodes]
+      summary: List all nodes
+      responses:
+        "200":
+          description: List of nodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Node"
+    post:
+      operationId: createNode
+      tags: [nodes]
+      summary: Create a new node
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNodeBody"
+      responses:
+        "201":
+          description: Node created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Node"
+
+  /nodes/{id}:
+    get:
+      operationId: getNode
+      tags: [nodes]
+      summary: Get a single node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Node found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Node"
+    put:
+      operationId: updateNode
+      tags: [nodes]
+      summary: Update a node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNodeBody"
+      responses:
+        "200":
+          description: Node updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Node"
+    delete:
+      operationId: deleteNode
+      tags: [nodes]
+      summary: Delete a node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /edges:
+    get:
+      operationId: listEdges
+      tags: [edges]
+      summary: List all edges
+      responses:
+        "200":
+          description: List of edges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Edge"
+    post:
+      operationId: createEdge
+      tags: [edges]
+      summary: Create an edge between nodes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEdgeBody"
+      responses:
+        "201":
+          description: Edge created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Edge"
+
+  /edges/{id}:
+    delete:
+      operationId: deleteEdge
+      tags: [edges]
+      summary: Delete an edge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /actions:
+    get:
+      operationId: listActions
+      tags: [actions]
+      summary: List all action items
+      responses:
+        "200":
+          description: List of actions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Action"
+
+  /actions/{id}:
+    put:
+      operationId: updateAction
+      tags: [actions]
+      summary: Update an action item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateActionBody"
+      responses:
+        "200":
+          description: Action updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Action"
+    delete:
+      operationId: deleteAction
+      tags: [actions]
+      summary: Delete an action
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /graph/summary:
+    get:
+      operationId: getGraphSummary
+      tags: [graph]
+      summary: Get knowledge graph summary stats
+      responses:
+        "200":
+          description: Graph summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphSummary"
+
+  /graph/data:
+    get:
+      operationId: getGraphData
+      tags: [graph]
+      summary: Get all nodes and edges for graph rendering
+      responses:
+        "200":
+          description: Full graph data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphData"
+
+  /graph/domains:
+    get:
+      operationId: getGraphDomains
+      tags: [graph]
+      summary: Get distinct domain labels currently in the graph
+      responses:
+        "200":
+          description: List of domain labels
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphDomains"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Input:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+          enum: [text, url, note, file, youtube, instagram, pinterest, image, video, audio]
+        summary:
+          type: string
+          nullable: true
+        processed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - content
+        - type
+        - processed
+        - createdAt
+        - updatedAt
+
+    CreateInputBody:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+          enum: [text, url, note, file, youtube, instagram, pinterest, image, video, audio]
+      required:
+        - title
+        - content
+        - type
+
+    PlaylistEntry:
+      type: object
+      properties:
+        title:
+          type: string
+        videoId:
+          type: string
+          nullable: true
+        hasTranscript:
+          type: boolean
+      required:
+        - title
+        - hasTranscript
+
+    YoutubeImportResult:
+      type: object
+      properties:
+        input:
+          $ref: "#/components/schemas/Input"
+        playlistEntries:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/PlaylistEntry"
+      required:
+        - input
+
+    YoutubePlaylistBody:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Full YouTube video or playlist URL (e.g. youtube.com/watch?v=xxx or youtube.com/playlist?list=PLxxx)
+        title:
+          type: string
+          description: Optional custom title (defaults to the title from YouTube)
+        fetchTranscripts:
+          type: boolean
+          description: When true (default), fetches a transcript for each video in a playlist. Set to false to skip transcript fetching and speed up import.
+      required:
+        - url
+
+    ProcessResult:
+      type: object
+      properties:
+        input:
+          $ref: "#/components/schemas/Input"
+        nodesCreated:
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
+        actionsCreated:
+          type: array
+          items:
+            $ref: "#/components/schemas/Action"
+        edgesCreated:
+          type: array
+          items:
+            $ref: "#/components/schemas/Edge"
+      required:
+        - input
+        - nodesCreated
+        - actionsCreated
+        - edgesCreated
+
+    NodeSource:
+      type: object
+      properties:
+        inputId:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum: [text, url, note, file, youtube, instagram, pinterest, image, video, audio]
+      required:
+        - inputId
+        - title
+        - type
+
+    Node:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum: [domain, concept, insight, action, goal]
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+          nullable: true
+          description: Difficulty/progression level — only set on concept and goal nodes; null for domain, insight, and action nodes (or for pre-existing nodes that have not been re-processed)
+        description:
+          type: string
+          nullable: true
+        inputId:
+          type: string
+          nullable: true
+        sourceCount:
+          type: integer
+          description: Number of distinct source inputs that contributed to this node (via merging)
+        sources:
+          type: array
+          nullable: true
+          description: Source inputs that contributed to this node — included in both GET /graph/data and GET /nodes/:id
+          items:
+            $ref: "#/components/schemas/NodeSource"
+        positionX:
+          type: number
+        positionY:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - label
+        - type
+        - positionX
+        - positionY
+        - createdAt
+        - updatedAt
+
+    CreateNodeBody:
+      type: object
+      properties:
+        label:
+          type: string
+        type:
+          type: string
+          enum: [domain, concept, insight, action, goal]
+        description:
+          type: string
+        inputId:
+          type: string
+        positionX:
+          type: number
+        positionY:
+          type: number
+      required:
+        - label
+        - type
+
+    UpdateNodeBody:
+      type: object
+      properties:
+        label:
+          type: string
+        type:
+          type: string
+          enum: [domain, concept, insight, action, goal]
+        description:
+          type: string
+        positionX:
+          type: number
+        positionY:
+          type: number
+
+    Edge:
+      type: object
+      properties:
+        id:
+          type: string
+        sourceId:
+          type: string
+        targetId:
+          type: string
+        label:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sourceId
+        - targetId
+        - createdAt
+
+    CreateEdgeBody:
+      type: object
+      properties:
+        sourceId:
+          type: string
+        targetId:
+          type: string
+        label:
+          type: string
+      required:
+        - sourceId
+        - targetId
+
+    Action:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, in_progress, done]
+        nodeId:
+          type: string
+          nullable: true
+        inputId:
+          type: string
+          nullable: true
+          description: The source input that generated this action
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - createdAt
+        - updatedAt
+
+    UpdateActionBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, done]
+
+    GraphSummary:
+      type: object
+      properties:
+        totalNodes:
+          type: integer
+        totalEdges:
+          type: integer
+        totalInputs:
+          type: integer
+        totalActions:
+          type: integer
+        nodesByType:
+          type: object
+          properties:
+            domain:
+              type: integer
+            concept:
+              type: integer
+            insight:
+              type: integer
+            action:
+              type: integer
+            goal:
+              type: integer
+          required:
+            - domain
+            - concept
+            - insight
+            - action
+            - goal
+        actionsByStatus:
+          type: object
+          properties:
+            pending:
+              type: integer
+            in_progress:
+              type: integer
+            done:
+              type: integer
+          required:
+            - pending
+            - in_progress
+            - done
+      required:
+        - totalNodes
+        - totalEdges
+        - totalInputs
+        - totalActions
+        - nodesByType
+        - actionsByStatus
+
+    GraphData:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Edge"
+      required:
+        - nodes
+        - edges
+
+    GraphDomains:
+      type: object
+      properties:
+        domains:
+          type: array
+          items:
+            type: string
+          description: Alphabetically sorted list of distinct domain labels in the graph
+      required:
+        - domains
+
+    FileUploadError:
+      type: object
+      properties:
+        file:
+          type: string
+          description: Original filename that failed
+        error:
+          type: string
+          description: Human-readable reason for the failure
+      required:
+        - file
+        - error
+
+    UploadResult:
+      type: object
+      properties:
+        created:
+          type: array
+          items:
+            $ref: "#/components/schemas/Input"
+          description: Inputs successfully created from uploaded files
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileUploadError"
+          description: Files that could not be processed
+      required:
+        - created
+        - errors
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
