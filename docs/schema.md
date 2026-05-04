@@ -110,19 +110,21 @@ Migrations are plain SQL files in `lib/db/migrations/` — no migration runner d
 
 ### Apply to a fresh database
 
-```bash
-psql "$DATABASE_URL" -f lib/db/migrations/0000_colorful_infant_terrible.sql
-psql "$DATABASE_URL" -f lib/db/migrations/0001_add_node_sources.sql
-psql "$DATABASE_URL" -f lib/db/migrations/0002_add_actions_input_id.sql
-```
-
-Or use Drizzle Kit's push command (introspects the schema and syncs, safe on empty databases):
+Use the baseline schema — it creates all five tables in one command using `IF NOT EXISTS`, so it is safe to run on any empty database:
 
 ```bash
-pnpm --filter @workspace/db push
+psql "$DATABASE_URL" -f lib/db/migrations/baseline.sql
 ```
 
-> **Note:** `drizzle-kit push` compares the live schema against the TypeScript definitions and generates the necessary DDL. It will never drop columns or tables that exist in the database but not in the schema.
+This is also the strategy used by `docker compose up` for first-boot initialization.
+
+Alternatively, Drizzle Kit can introspect the TypeScript schema and sync it automatically (never drops data):
+
+```bash
+DATABASE_URL="your-connection-string" pnpm --filter @workspace/db push
+```
+
+> **Upgrading an existing database:** The incremental files (`0000_colorful_infant_terrible.sql`, `0001_add_node_sources.sql`, `0002_add_actions_input_id.sql`) apply targeted `ALTER TABLE` changes and are intended for databases created before the baseline existed. Run them in order only if your DB was provisioned prior to the baseline migration.
 
 ### Adding a new migration
 
