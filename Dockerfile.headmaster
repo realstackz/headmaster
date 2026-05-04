@@ -16,26 +16,32 @@ COPY tsconfig.base.json tsconfig.json ./
 COPY lib/ ./lib/
 COPY artifacts/headmaster/ ./artifacts/headmaster/
 
-# Build the static frontend — API is served from /api by a separate service
-ENV VITE_API_URL=/api
+# Vite config requires PORT and BASE_PATH at build time
+ENV PORT=3000
+ENV BASE_PATH=/
+ENV NODE_ENV=production
+
+# Build outputs to artifacts/headmaster/dist/public
 RUN pnpm --filter @workspace/headmaster run build
 
 # Serve with nginx
 FROM nginx:alpine
-COPY --from=build /app/artifacts/headmaster/dist /usr/share/nginx/html
+# Vite outputs to dist/public — copy that exact directory
+COPY --from=build /app/artifacts/headmaster/dist/public /usr/share/nginx/html
 
-# Route all non-asset requests to index.html for client-side routing
+# Route all non-asset requests to index.html for client-side routing;
+# proxy /api/* to the api-server container
 RUN printf 'server {\n\
   listen 80;\n\
   root /usr/share/nginx/html;\n\
   index index.html;\n\
-  location / {\n\
-    try_files $uri $uri/ /index.html;\n\
-  }\n\
   location /api/ {\n\
     proxy_pass http://api-server:8080;\n\
     proxy_set_header Host $host;\n\
     proxy_set_header X-Real-IP $remote_addr;\n\
+  }\n\
+  location / {\n\
+    try_files $uri $uri/ /index.html;\n\
   }\n\
 }\n' > /etc/nginx/conf.d/default.conf
 

@@ -23,12 +23,11 @@ services:
       PGPASSWORD: headmaster
     volumes:
       - ./lib/db/migrations:/migrations:ro
+    # Uses baseline.sql which creates all tables from scratch (safe with IF NOT EXISTS).
+    # This works on a fresh database — the incremental migration files (0000, 0001, 0002)
+    # are for upgrading an existing Replit/dev database and are NOT run here.
     command: >
-      sh -c "
-        psql -h db -U headmaster -d headmaster -f /migrations/0000_colorful_infant_terrible.sql &&
-        psql -h db -U headmaster -d headmaster -f /migrations/0001_add_node_sources.sql &&
-        psql -h db -U headmaster -d headmaster -f /migrations/0002_add_actions_input_id.sql
-      "
+      sh -c "psql -h db -U headmaster -d headmaster -f /migrations/baseline.sql"
     restart: on-failure
 
   api-server:

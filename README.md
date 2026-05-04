@@ -70,30 +70,33 @@ cp .env.example .env
 
 ### 3. Initialize the database
 
-```bash
-# Apply all migrations in order
-psql "$DATABASE_URL" -f lib/db/migrations/0000_colorful_infant_terrible.sql
-psql "$DATABASE_URL" -f lib/db/migrations/0001_add_node_sources.sql
-psql "$DATABASE_URL" -f lib/db/migrations/0002_add_actions_input_id.sql
-```
-
-Or push the full schema directly with Drizzle (drops nothing, safe on empty DB):
+For a fresh database, apply the baseline schema (creates all tables):
 
 ```bash
-pnpm --filter @workspace/db push
+psql "$DATABASE_URL" -f lib/db/migrations/baseline.sql
 ```
+
+Or use Drizzle Kit's push command, which introspects the TypeScript schema and syncs it directly (safe on empty DBs, never drops data):
+
+```bash
+DATABASE_URL="your-connection-string" pnpm --filter @workspace/db push
+```
+
+> **Upgrading an existing dev database:** The incremental migration files (`0000_colorful_infant_terrible.sql`, `0001_add_node_sources.sql`, `0002_add_actions_input_id.sql`) are for databases that were created before the baseline. Apply them in order if you have an existing DB without all columns.
 
 ### 4. Start the dev servers
 
+The API server and frontend each need a `PORT` and the frontend also needs a `BASE_PATH`. These are set automatically when using the provided scripts:
+
 ```bash
 # Terminal 1 — API server (port 8080)
-pnpm --filter @workspace/api-server run dev
+PORT=8080 pnpm --filter @workspace/api-server run dev
 
-# Terminal 2 — Headmaster frontend
-pnpm --filter @workspace/headmaster run dev
+# Terminal 2 — Headmaster frontend (port 5173, served at root path)
+PORT=5173 BASE_PATH=/ pnpm --filter @workspace/headmaster run dev
 ```
 
-Open your browser at the URL shown by Vite (usually `http://localhost:5173`).
+Open your browser at `http://localhost:5173`.
 
 ---
 
